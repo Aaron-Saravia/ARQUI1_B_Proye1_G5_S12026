@@ -1,37 +1,52 @@
 import React, { useState } from 'react';
 import { Crosshair, Shield, Send } from 'lucide-react';
 import { naveAPI } from '../api/client';
+import toast from 'react-hot-toast';
 
 export default function ControlPanel() {
   const [angulo, setAngulo] = useState(90);
   const [mensaje, setMensaje] = useState("");
   const [estadoCompuerta, setEstadoCompuerta] = useState("Cerrada");
 
-  // Funciones reales que envían datos al backend
   const moverTorreta = async (nuevoAngulo) => {
     setAngulo(nuevoAngulo);
-    console.log(`Enviando ángulo ${nuevoAngulo}° a la API...`);
-    await naveAPI.enviarComando('torreta', nuevoAngulo);
+    try {
+      await naveAPI.enviarComando('torreta', nuevoAngulo);
+      toast.success(`Torreta movida a ${nuevoAngulo}°`, { id: 'torreta' }); // El id evita que se saturen las notificaciones
+    } catch (e) {
+      toast.error("Error al conectar con la nave");
+    }
   };
 
   const toggleCompuerta = async () => {
     const accion = estadoCompuerta === "Cerrada" ? "Abrir" : "Cerrar";
-    console.log(`Enviando comando ${accion} compuerta a la API...`);
-    await naveAPI.enviarComando('compuerta', accion);
-    setEstadoCompuerta(accion === "Abrir" ? "Abierta" : "Cerrada");
+    try {
+      await naveAPI.enviarComando('compuerta', accion);
+      setEstadoCompuerta(accion === "Abrir" ? "Abierta" : "Cerrada");
+      toast.success(`Compuerta ${accion === "Abrir" ? "abierta" : "cerrada"}`);
+    } catch (e) {
+      toast.error("Fallo al accionar compuerta");
+    }
   };
 
   const activarCamuflaje = async () => {
-    console.log("Activando camuflaje en la API...");
-    await naveAPI.enviarComando('camuflaje', 'activar');
-    alert("¡Comando de camuflaje enviado a la nave!"); // Pequeño feedback visual
+    try {
+      await naveAPI.enviarComando('camuflaje', 'activar');
+      toast.success("¡Modo Camuflaje Activado!", { icon: '🛡️' });
+    } catch (e) {
+      toast.error("Fallo al activar camuflaje");
+    }
   };
 
   const enviarMensajeLCD = async () => {
     if (!mensaje.trim()) return;
-    console.log(`Enviando mensaje LCD: ${mensaje}`);
-    await naveAPI.enviarComando('lcd', mensaje);
-    setMensaje(""); // Limpiar el input después de enviar
+    try {
+      await naveAPI.enviarComando('lcd', mensaje);
+      toast.success("Mensaje enviado a Sala de Control");
+      setMensaje(""); 
+    } catch (e) {
+      toast.error("Error al enviar mensaje");
+    }
   };
 
   return (
@@ -41,13 +56,14 @@ export default function ControlPanel() {
       </h2>
       
       <div className="space-y-6">
-        {/* Control de Torreta */}
         <div>
           <label className="block text-slate-400 text-sm mb-2">Ángulo Torreta: {angulo}°</label>
           <input 
             type="range" min="0" max="360" 
             value={angulo} 
-            onChange={(e) => moverTorreta(e.target.value)} 
+            onChange={(e) => setAngulo(e.target.value)}
+            onMouseUp={(e) => moverTorreta(e.target.value)} 
+            onTouchEnd={(e) => moverTorreta(e.target.value)}
             className="w-full cursor-pointer accent-blue-500" 
           />
           <div className="flex justify-between text-xs text-slate-500 mt-1">
@@ -55,39 +71,20 @@ export default function ControlPanel() {
           </div>
         </div>
 
-        {/* Botones de Compuertas y Camuflaje */}
         <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={toggleCompuerta}
-            className={`${estadoCompuerta === 'Cerrada' ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-500'} py-3 rounded-lg font-semibold transition text-slate-200`}
-          >
+          <button onClick={toggleCompuerta} className={`${estadoCompuerta === 'Cerrada' ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-500'} py-3 rounded-lg font-semibold transition text-slate-200`}>
             {estadoCompuerta === 'Cerrada' ? 'Abrir Compuerta' : 'Cerrar Compuerta'}
           </button>
-          
-          <button 
-            onClick={activarCamuflaje}
-            className="bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-white"
-          >
-            <Shield size={18} /> Modo Camuflaje
+          <button onClick={activarCamuflaje} className="bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-white">
+            <Shield size={18} /> Camuflaje
           </button>
         </div>
 
-        {/* Mensajes a LCD */}
         <div className="pt-4 border-t border-slate-700">
           <label className="block text-slate-400 text-sm mb-2">Mensaje a Sala de Control</label>
           <div className="flex gap-2">
-            <input 
-              type="text" 
-              maxLength="64" 
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
-              placeholder="Ej. Peligro inminente..." 
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500" 
-            />
-            <button 
-              onClick={enviarMensajeLCD}
-              className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition text-white flex items-center justify-center"
-            >
+            <input type="text" maxLength="64" value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Ej. Peligro inminente..." className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500" />
+            <button onClick={enviarMensajeLCD} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition text-white flex items-center justify-center">
               <Send size={18} />
             </button>
           </div>
