@@ -1,0 +1,7 @@
+paho-mqtt>=2.1.0
+pymongo>=4.16.0
+python-dotenv>=1.0.1
+adafruit-circuitpython-dht
+Adafruit-Blinka
+adafruit-circuitpython-tcs34725
+rpi-lcd
